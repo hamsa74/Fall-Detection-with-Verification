@@ -6,7 +6,6 @@ from collections import deque
 import urllib.request
 import os
 
-# Download the pose landmarker model if not present
 MODEL_PATH = "pose_landmarker.task"
 MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
 
@@ -16,88 +15,162 @@ def ensure_model():
         urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
         print("[Setup] Model downloaded successfully!")
 
+# Unique color per person (BGR)
+PERSON_COLORS = [
+    (80,  200, 120),   # Person 1 - Green
+    (60,  140, 220),   # Person 2 - Blue
+    (60,  60,  220),   # Person 3 - Red
+    (0,   200, 220),   # Person 4 - Yellow
+]
+
 class PersonTracker:
     """
-    PersonTracker using the NEW mediapipe Tasks API (>= 0.10.30).
-    - PoseLandmarker instead of deprecated mp.solutions.pose
-    - Bounding box smoothing
-    - Visibility filtering
+    Multi-person tracker using mediapipe Tasks API.
+    Tracks up to `max_persons` people, each with a stable ID and color.
+    Uses IoU-based matching to keep IDs consistent across frames.
     """
 
-    def __init__(self, smooth_window=5, visibility_threshold=0.5):
+    def __init__(self, max_persons=3, smooth_window=5, visibility_threshold=0.5):
         ensure_model()
 
+        self.max_persons       = max_persons
         self.visibility_threshold = visibility_threshold
-        self.box_history = deque(maxlen=smooth_window)
-        self.latest_landmarks = None
+        self.frame_index       = 0
 
-        # New Tasks API setup
+        # Per-person smoothing histories  {person_id: deque}
+        self.box_histories = {}
+        self.smooth_window = smooth_window
+
+        # Last known boxes for ID matching  {person_id: box}
+        self.last_boxes = {}
+        self.next_id    = 0
+
         base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
         options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO,
-            num_poses=1,
+            num_poses=max_persons,
             min_pose_detection_confidence=0.5,
             min_pose_presence_confidence=0.5,
             min_tracking_confidence=0.5,
         )
         self.pose_analyzer = vision.PoseLandmarker.create_from_options(options)
-        self.frame_index = 0
 
-    def _filter_landmarks(self, pts):
-        visible_x, visible_y = [], []
+    def _filter_landmarks(self, pts, w, h):
+        vx, vy = [], []
         for p in pts:
             if p.visibility >= self.visibility_threshold:
-                visible_x.append(p.x)
-                visible_y.append(p.y)
-        return visible_x, visible_y
+                vx.append(p.x)
+                vy.append(p.y)
+        return vx, vy
 
-    def _smooth_box(self, box):
-        self.box_history.append(box)
-        avg_x = int(sum(b[0] for b in self.box_history) / len(self.box_history))
-        avg_y = int(sum(b[1] for b in self.box_history) / len(self.box_history))
-        avg_w = int(sum(b[2] for b in self.box_history) / len(self.box_history))
-        avg_h = int(sum(b[3] for b in self.box_history) / len(self.box_history))
-        return [avg_x, avg_y, avg_w, avg_h]
+    def _landmarks_to_box(self, pts, w, h):
+        vx, vy = self._filter_landmarks(pts, w, h)
+        if len(vx) < 5:
+            return None
+        sx, ex = int(min(vx)*w), int(max(vx)*w)
+        sy, ey = int(min(vy)*h), int(max(vy)*h)
+        px, py = int(0.05*w), int(0.05*h)
+        return [max(0,sx-px), max(0,sy-py),
+                min(w, ex-sx+2*px), min(h, ey-sy+2*py)]
 
-    def get_body_frame(self, frame):
+    def _iou(self, b1, b2):
+        """Intersection over Union for two boxes [x,y,w,h]."""
+        x1,y1,w1,h1 = b1;  x2,y2,w2,h2 = b2
+        ix = max(0, min(x1+w1,x2+w2) - max(x1,x2))
+        iy = max(0, min(y1+h1,y2+h2) - max(y1,y2))
+        inter = ix * iy
+        union = w1*h1 + w2*h2 - inter
+        return inter/union if union > 0 else 0
+
+    def _match_ids(self, raw_boxes):
+        """
+        Match detected boxes to existing IDs using IoU.
+        New person → new ID. Disappeared person → ID removed.
+        """
+        matched   = {}   # {person_id: box}
+        used_raw  = set()
+
+        # Try to match each known ID to a detected box
+        for pid, last_box in self.last_boxes.items():
+            best_iou, best_i = 0, -1
+            for i, rb in enumerate(raw_boxes):
+                if i in used_raw:
+                    continue
+                iou = self._iou(last_box, rb)
+                if iou > best_iou:
+                    best_iou, best_i = iou, i
+            if best_iou > 0.15 and best_i >= 0:
+                matched[pid] = raw_boxes[best_i]
+                used_raw.add(best_i)
+
+        # New detections that didn't match anyone → assign new IDs
+        for i, rb in enumerate(raw_boxes):
+            if i not in used_raw:
+                matched[self.next_id] = rb
+                self.next_id += 1
+
+        self.last_boxes = matched
+        return matched
+
+    def _smooth_box(self, pid, box):
+        if pid not in self.box_histories:
+            self.box_histories[pid] = deque(maxlen=self.smooth_window)
+        hist = self.box_histories[pid]
+        hist.append(box)
+        return [int(sum(b[i] for b in hist)/len(hist)) for i in range(4)]
+
+    def get_persons(self, frame):
+        """
+        Returns list of dicts:
+          { 'id': int, 'box': [x,y,w,h], 'landmarks': [...], 'color': (B,G,R) }
+        """
         h, w, _ = frame.shape
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
-        # Convert to mediapipe Image format
-        rgb_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_img)
-
-        # Use timestamp for VIDEO mode
-        timestamp_ms = self.frame_index * 33  # ~30fps
+        ts = self.frame_index * 33
         self.frame_index += 1
+        result = self.pose_analyzer.detect_for_video(mp_img, ts)
 
-        result = self.pose_analyzer.detect_for_video(mp_image, timestamp_ms)
+        if not result.pose_landmarks:
+            self.last_boxes = {}
+            self.box_histories = {}
+            return []
 
-        if result.pose_landmarks and len(result.pose_landmarks) > 0:
-            pts = result.pose_landmarks[0]
-            self.latest_landmarks = pts
+        # Build raw boxes for all detected poses
+        raw_boxes = []
+        raw_lms   = []
+        for lms in result.pose_landmarks:
+            box = self._landmarks_to_box(lms, w, h)
+            if box:
+                raw_boxes.append(box)
+                raw_lms.append(lms)
 
-            visible_x, visible_y = self._filter_landmarks(pts)
+        # Match to stable IDs
+        id_to_box = self._match_ids(raw_boxes)
 
-            if len(visible_x) < 5:
-                return None, None
+        persons = []
+        for pid, box in id_to_box.items():
+            # Find landmarks for this box
+            best_lms = None
+            best_iou = 0
+            for lms, rb in zip(raw_lms, raw_boxes):
+                iou = self._iou(box, rb)
+                if iou > best_iou:
+                    best_iou, best_lms = iou, lms
 
-            start_x = int(min(visible_x) * w)
-            end_x   = int(max(visible_x) * w)
-            start_y = int(min(visible_y) * h)
-            end_y   = int(max(visible_y) * h)
+            if best_lms is None:
+                continue
 
-            padding_x = int(0.05 * w)
-            padding_y = int(0.05 * h)
+            smooth = self._smooth_box(pid, box)
+            color  = PERSON_COLORS[pid % len(PERSON_COLORS)]
 
-            raw_box = [
-                max(0, start_x - padding_x),
-                max(0, start_y - padding_y),
-                min(w, end_x - start_x + 2 * padding_x),
-                min(h, end_y - start_y + 2 * padding_y)
-            ]
+            persons.append({
+                'id':        pid,
+                'box':       smooth,
+                'landmarks': best_lms,
+                'color':     color,
+            })
 
-            return self._smooth_box(raw_box), pts
-
-        self.box_history.clear()
-        return None, None
+        return persons
