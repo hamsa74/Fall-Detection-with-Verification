@@ -6,7 +6,7 @@ import os
 
 class PersonTracker:
     def __init__(self):
-        model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'pose_landmarker.task')
+        model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'pose_landmarker_lite.task')
         model_path = os.path.normpath(model_path)
         base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.PoseLandmarkerOptions(
