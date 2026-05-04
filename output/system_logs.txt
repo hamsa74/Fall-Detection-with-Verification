@@ -64,3 +64,17 @@
 [2026-05-04 11:06:53] [CRITICAL] Person #16 Fall alert #5 | confidence=0.66
 [2026-05-04 11:06:54] [CRITICAL] Person #21 Fall alert #6 | confidence=0.54
 [2026-05-04 11:06:55] [CRITICAL] Person #28 Fall alert #7 | confidence=0.67
+[2026-05-04 11:15:21] [CRITICAL] Person #6 Fall alert #1 | confidence=0.76
+[2026-05-04 11:15:22] [CRITICAL] Person #14 Fall alert #2 | confidence=0.78
+[2026-05-04 11:15:23] [CRITICAL] Person #16 Fall alert #3 | confidence=0.71
+[2026-05-04 11:15:23] [CRITICAL] Person #17 Fall alert #4 | confidence=0.67
+[2026-05-04 11:15:23] [CRITICAL] Person #16 Fall alert #5 | confidence=0.66
+[2026-05-04 11:15:24] [CRITICAL] Person #21 Fall alert #6 | confidence=0.54
+[2026-05-04 11:15:25] [CRITICAL] Person #28 Fall alert #7 | confidence=0.67
+[2026-05-04 11:15:45] [CRITICAL] Person #6 Fall alert #1 | confidence=0.76
+[2026-05-04 11:15:46] [CRITICAL] Person #14 Fall alert #2 | confidence=0.78
+[2026-05-04 11:15:47] [CRITICAL] Person #16 Fall alert #3 | confidence=0.71
+[2026-05-04 11:15:47] [CRITICAL] Person #17 Fall alert #4 | confidence=0.67
+[2026-05-04 11:15:47] [CRITICAL] Person #16 Fall alert #5 | confidence=0.66
+[2026-05-04 11:15:48] [CRITICAL] Person #21 Fall alert #6 | confidence=0.54
+[2026-05-04 11:15:49] [CRITICAL] Person #28 Fall alert #7 | confidence=0.67

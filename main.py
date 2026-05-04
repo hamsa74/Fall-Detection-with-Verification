@@ -7,6 +7,7 @@ from modules.verification_logic import PostureVerifier
 from modules.logger_utils import log_event, buffer_frame
 from modules.dashboard import Dashboard
 from modules.report_generator import generate_report
+from modules.alert_system import play_fall_alert
 
 
 def get_video_source():
@@ -149,6 +150,7 @@ def start_engine():
                 was_fall = prev_fall_states.get(pid, False)
                 if is_fall and not was_fall:
                     fall_count += 1
+                    play_fall_alert()  # 🔊 Non-blocking beep
                     ts = datetime.now().strftime("%H:%M:%S")
                     screenshot_path = log_event(
                         f"Person #{pid+1} Fall alert #{fall_count} | confidence={confidence:.2f}", img
