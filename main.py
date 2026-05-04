@@ -31,32 +31,16 @@ def get_video_source():
         return None
 
 
-def draw_confidence_bar(img, x, y, w, confidence, is_fall):
-    """Draw a small confidence bar on the video frame."""
+def draw_confidence_bar(img, x, y, w, confidence):
     bar_h  = 8
     filled = int(w * confidence)
-
-    # Background
-    cv2.rectangle(img, (x, y), (x + w, y + bar_h), (50, 50, 50), -1)
-
-    # Fill color: green → yellow → red based on confidence
-    if confidence < 0.4:
-        color = (80, 200, 80)    # green
-    elif confidence < 0.7:
-        color = (0, 200, 220)    # yellow
-    else:
-        color = (0, 0, 220)      # red
-
+    cv2.rectangle(img, (x, y), (x+w, y+bar_h), (50,50,50), -1)
     if filled > 0:
-        cv2.rectangle(img, (x, y), (x + filled, y + bar_h), color, -1)
-
-    # Border
-    cv2.rectangle(img, (x, y), (x + w, y + bar_h), (100, 100, 100), 1)
-
-    # Percentage label
-    pct = f"{int(confidence * 100)}%"
-    cv2.putText(img, pct, (x + w + 6, y + bar_h),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
+        color = (80,200,80) if confidence < 0.4 else (0,200,220) if confidence < 0.7 else (0,0,220)
+        cv2.rectangle(img, (x, y), (x+filled, y+bar_h), color, -1)
+    cv2.rectangle(img, (x, y), (x+w, y+bar_h), (100,100,100), 1)
+    cv2.putText(img, f"{int(confidence*100)}%", (x+w+6, y+bar_h),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200,200,200), 1)
 
 
 def draw_ui(img, persons, fall_states, confidences, frame_count, fall_count):
@@ -68,18 +52,14 @@ def draw_ui(img, persons, fall_states, confidences, frame_count, fall_count):
 
         is_fall    = fall_states.get(pid, False)
         conf       = confidences.get(pid, 0.0)
-        draw_color = (0, 0, 255) if is_fall else color
+        draw_color = (0,0,255) if is_fall else color
 
-        cv2.rectangle(img, (x, y), (x+w, y+h), draw_color, 2)
-
-        # Label above box
+        cv2.rectangle(img, (x,y), (x+w,y+h), draw_color, 2)
         label = f"Person #{pid+1} {'- FALL!' if is_fall else ''}"
-        cv2.rectangle(img, (x, y-26), (x + len(label)*10, y), (0,0,0), -1)
+        cv2.rectangle(img, (x, y-26), (x+len(label)*10, y), (0,0,0), -1)
         cv2.putText(img, label, (x+4, y-8),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.52, draw_color, 2)
-
-        # Confidence bar below label
-        draw_confidence_bar(img, x, y + h + 6, w, conf, is_fall)
+        draw_confidence_bar(img, x, y+h+6, w, conf)
 
     stats = f"Frames: {frame_count}  |  People: {len(persons)}  |  Falls: {fall_count}"
     cv2.putText(img, stats, (20, img.shape[0]-15),
@@ -97,6 +77,17 @@ def start_engine():
         print("[Error] Failed to access the video source.")
         return
 
+    # --- Annotated video writer setup ---
+    os.makedirs('output', exist_ok=True)
+    file_ts      = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_w        = int(view.get(cv2.CAP_PROP_FRAME_WIDTH))
+    out_h        = int(view.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    out_fps      = view.get(cv2.CAP_PROP_FPS) or 20
+    fourcc       = cv2.VideoWriter_fourcc(*'mp4v')
+    export_path  = os.path.join('output', f'annotated_{file_ts}.mp4')
+    video_writer = cv2.VideoWriter(export_path, fourcc, out_fps, (out_w, out_h))
+    print(f"[Export] Saving annotated video to: {export_path}")
+
     tracker   = PersonTracker(max_persons=3)
     dashboard = Dashboard(width=400, height=640)
     verifiers = {}
@@ -110,7 +101,14 @@ def start_engine():
     last_time        = datetime.now()
     prev_fall_states = {}
 
-    print("\n[System] CareBot AI is ACTIVE. Press 'q' to stop.\n")
+    # Frame skipping: detect every N frames, display/export every frame
+    PROCESS_EVERY_N  = 2
+    last_persons     = []
+    last_fall_states = {}
+    last_confidences = {}
+
+    print("\n[System] CareBot AI is ACTIVE. Press 'q' to stop.")
+    print(f"[System] Frame skipping: processing every {PROCESS_EVERY_N} frames.\n")
 
     while True:
         success, img = view.read()
@@ -120,6 +118,8 @@ def start_engine():
 
         frame_count += 1
         buffer_frame(img)
+
+        should_process = (frame_count % PROCESS_EVERY_N == 0)
 
         now   = datetime.now()
         delta = (now - last_time).total_seconds()
@@ -133,47 +133,63 @@ def start_engine():
         any_fall       = False
 
         try:
-            persons = tracker.get_persons(img)
+            if should_process:
+                # Full detection on this frame
+                persons = tracker.get_persons(img)
 
-            for p in persons:
-                pid = p['id']
-                if pid not in verifiers:
-                    verifiers[pid] = PostureVerifier(confirmation_frames=5)
+                for p in persons:
+                    pid = p['id']
+                    if pid not in verifiers:
+                        verifiers[pid] = PostureVerifier(confirmation_frames=5)
 
-                verifier           = verifiers[pid]
-                is_fall, confidence = verifier.evaluate_posture(p['box'], p['landmarks'])
+                    verifier            = verifiers[pid]
+                    is_fall, confidence = verifier.evaluate_posture(p['box'], p['landmarks'])
 
-                fall_states[pid]  = is_fall
-                confidences[pid]  = confidence
-                max_confidence    = max(max_confidence, confidence)
+                    fall_states[pid] = is_fall
+                    confidences[pid] = confidence
+                    max_confidence   = max(max_confidence, confidence)
 
-                was_fall = prev_fall_states.get(pid, False)
-                if is_fall and not was_fall:
-                    fall_count += 1
-                    play_fall_alert()  # 🔊 Non-blocking beep
-                    ts = datetime.now().strftime("%H:%M:%S")
-                    screenshot_path = log_event(
-                        f"Person #{pid+1} Fall alert #{fall_count}",
-                        img,
-                        person_id=pid+1,
-                        frame_number=frame_count,
-                        confidence=confidence
-                    )
-                    fall_events.append({
-                        'id':         fall_count,
-                        'person_id':  pid,
-                        'timestamp':  ts,
-                        'frame':      frame_count,
-                        'confidence': confidence,
-                        'screenshot': screenshot_path or '',
-                    })
+                    was_fall = prev_fall_states.get(pid, False)
+                    if is_fall and not was_fall:
+                        fall_count += 1
+                        play_fall_alert()
+                        ts = datetime.now().strftime("%H:%M:%S")
+                        screenshot_path = log_event(
+                            f"Person #{pid+1} Fall alert #{fall_count}",
+                            img,
+                            person_id=pid+1,
+                            frame_number=frame_count,
+                            confidence=confidence
+                        )
+                        fall_events.append({
+                            'id':         fall_count,
+                            'person_id':  pid,
+                            'timestamp':  ts,
+                            'frame':      frame_count,
+                            'confidence': confidence,
+                            'screenshot': screenshot_path or '',
+                        })
 
-            prev_fall_states = {p['id']: fall_states.get(p['id'], False) for p in persons}
-            any_fall = any(fall_states.values())
+                prev_fall_states  = {p['id']: fall_states.get(p['id'], False) for p in persons}
+                last_persons      = persons
+                last_fall_states  = fall_states
+                last_confidences  = confidences
+                any_fall          = any(fall_states.values())
+
+            else:
+                # Skipped frame — reuse last detection results
+                persons      = last_persons
+                fall_states  = last_fall_states
+                confidences  = last_confidences
+                any_fall     = any(fall_states.values())
+
             img = draw_ui(img, persons, fall_states, confidences, frame_count, fall_count)
 
         except Exception as e:
             print(f"[Warning] Frame error: {e}")
+
+        # Write annotated frame to export video
+        video_writer.write(img)
 
         fall_timeline.append(1 if any_fall else 0)
 
@@ -188,16 +204,20 @@ def start_engine():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
+    # Finalize
     session_end = datetime.now()
     avg_fps     = sum(fps_history) / len(fps_history) if fps_history else 0
 
+    video_writer.release()
     view.release()
     dashboard.close()
     cv2.destroyAllWindows()
 
     print(f"\n[System] Shutdown successful.")
     print(f"[System] Total frames: {frame_count} | Total falls: {fall_count}")
+    print(f"[Export] Annotated video saved: {export_path}")
     print("[Report] Generating session report...")
+
     generate_report({
         'start_time':    session_start,
         'end_time':      session_end,
