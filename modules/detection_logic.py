@@ -45,16 +45,37 @@ class PersonTracker:
         self.last_boxes = {}
         self.next_id    = 0
 
-        base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
-        options = vision.PoseLandmarkerOptions(
-            base_options=base_options,
-            running_mode=vision.RunningMode.VIDEO,
-            num_poses=max_persons,
-            min_pose_detection_confidence=0.5,
-            min_pose_presence_confidence=0.5,
-            min_tracking_confidence=0.5,
-        )
-        self.pose_analyzer = vision.PoseLandmarker.create_from_options(options)
+        # Try GPU (CUDA) first, fall back to CPU if unavailable
+        try:
+            from mediapipe.tasks.python.core.base_options import BaseOptions as BO
+            gpu_delegate = python.BaseOptions.Delegate.GPU
+            base_options = python.BaseOptions(
+                model_asset_path=MODEL_PATH,
+                delegate=gpu_delegate
+            )
+            options = vision.PoseLandmarkerOptions(
+                base_options=base_options,
+                running_mode=vision.RunningMode.VIDEO,
+                num_poses=max_persons,
+                min_pose_detection_confidence=0.5,
+                min_pose_presence_confidence=0.5,
+                min_tracking_confidence=0.5,
+            )
+            self.pose_analyzer = vision.PoseLandmarker.create_from_options(options)
+            print("[Detection] ✅ Running on GPU (CUDA)")
+        except Exception as e:
+            print(f"[Detection] ⚠ GPU unavailable ({e}), falling back to CPU")
+            base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
+            options = vision.PoseLandmarkerOptions(
+                base_options=base_options,
+                running_mode=vision.RunningMode.VIDEO,
+                num_poses=max_persons,
+                min_pose_detection_confidence=0.5,
+                min_pose_presence_confidence=0.5,
+                min_tracking_confidence=0.5,
+            )
+            self.pose_analyzer = vision.PoseLandmarker.create_from_options(options)
+            print("[Detection] Running on CPU")
 
     def _filter_landmarks(self, pts, w, h):
         vx, vy = [], []
