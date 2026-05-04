@@ -78,3 +78,10 @@
 [2026-05-04 11:15:47] [CRITICAL] Person #16 Fall alert #5 | confidence=0.66
 [2026-05-04 11:15:48] [CRITICAL] Person #21 Fall alert #6 | confidence=0.54
 [2026-05-04 11:15:49] [CRITICAL] Person #28 Fall alert #7 | confidence=0.67
+[2026-05-04 11:18:47] [CRITICAL] Person #6 Fall alert #1
+[2026-05-04 11:18:48] [CRITICAL] Person #14 Fall alert #2
+[2026-05-04 11:18:49] [CRITICAL] Person #16 Fall alert #3
+[2026-05-04 11:18:50] [CRITICAL] Person #17 Fall alert #4
+[2026-05-04 11:18:50] [CRITICAL] Person #16 Fall alert #5
+[2026-05-04 11:18:50] [CRITICAL] Person #21 Fall alert #6
+[2026-05-04 11:18:51] [CRITICAL] Person #28 Fall alert #7

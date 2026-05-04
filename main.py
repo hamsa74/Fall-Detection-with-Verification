@@ -153,7 +153,11 @@ def start_engine():
                     play_fall_alert()  # 🔊 Non-blocking beep
                     ts = datetime.now().strftime("%H:%M:%S")
                     screenshot_path = log_event(
-                        f"Person #{pid+1} Fall alert #{fall_count} | confidence={confidence:.2f}", img
+                        f"Person #{pid+1} Fall alert #{fall_count}",
+                        img,
+                        person_id=pid+1,
+                        frame_number=frame_count,
+                        confidence=confidence
                     )
                     fall_events.append({
                         'id':         fall_count,
