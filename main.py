@@ -43,7 +43,14 @@ def draw_confidence_bar(img, x, y, w, confidence):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200,200,200), 1)
 
 
-def draw_ui(img, persons, fall_states, confidences, frame_count, fall_count):
+def draw_ui(img, persons, fall_states, confidences, frame_count, fall_count, fps=0.0):
+    # FPS counter top-right corner
+    fps_text = f"FPS: {fps:.1f}"
+    (fw, fh), _ = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+    cv2.rectangle(img, (img.shape[1]-fw-20, 10), (img.shape[1]-8, fh+18), (0,0,0), -1)
+    cv2.putText(img, fps_text, (img.shape[1]-fw-14, fh+12),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,220,220), 2)
+
     for p in persons:
         pid   = p['id']
         box   = p['box']
@@ -183,7 +190,8 @@ def start_engine():
                 confidences  = last_confidences
                 any_fall     = any(fall_states.values())
 
-            img = draw_ui(img, persons, fall_states, confidences, frame_count, fall_count)
+            avg_fps = sum(fps_history) / len(fps_history) if fps_history else 0
+            img = draw_ui(img, persons, fall_states, confidences, frame_count, fall_count, fps=avg_fps)
 
         except Exception as e:
             print(f"[Warning] Frame error: {e}")
