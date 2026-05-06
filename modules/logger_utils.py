@@ -3,6 +3,7 @@ import cv2
 import csv
 from datetime import datetime
 from collections import deque
+from modules.image_processor import process_fall_image
 
 
 class EventLogger:
@@ -89,11 +90,16 @@ class EventLogger:
         with open(log_path, 'a') as f:
             f.write(f"[{timestamp}] [{severity}] {message}\n")
 
-        # --- Screenshot ---
+        # --- Screenshot + Image Processing ---
         if frame is not None:
+            # Save original screenshot (backward compat)
             screenshot_name = f"FALL_EVIDENCE_{file_timestamp}.jpg"
             screenshot_path = os.path.join(self.output_dir, screenshot_name)
             cv2.imwrite(screenshot_path, frame)
+
+            # Save all processed versions
+            if severity == "CRITICAL":
+                process_fall_image(frame, self.output_dir)
 
         # --- CSV log ---
         with open(self.csv_path, 'a', newline='') as f:

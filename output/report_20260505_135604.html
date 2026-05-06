@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareBot AI - Session Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  .header { background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%); padding: 2.5rem 3rem; border-bottom: 1px solid #2d3748; }
+  .header h1 { font-size: 2rem; font-weight: 700; color: #f97316; letter-spacing: -0.5px; }
+  .header p  { color: #94a3b8; margin-top: 6px; font-size: 0.9rem; }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 12px; vertical-align: middle; }
+  .badge-ok   { background: #064e3b; color: #6ee7b7; }
+  .badge-warn { background: #7f1d1d; color: #fca5a5; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+  .section-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin-bottom: 1rem; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
+  .stat-card { background: #1e2433; border: 1px solid #2d3748; border-radius: 12px; padding: 1.25rem 1.5rem; }
+  .stat-card .label { font-size: 0.75rem; color: #64748b; margin-bottom: 6px; }
+  .stat-card .value { font-size: 1.75rem; font-weight: 700; color: #f1f5f9; }
+  .stat-card .value.danger { color: #f87171; }
+  .stat-card .value.safe   { color: #34d399; }
+  .stat-card .value.accent { color: #f97316; }
+  .card { background: #1e2433; border: 1px solid #2d3748; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; }
+  .timeline-wrap { overflow-x: auto; }
+  .falls-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+  .fall-card { background: #1a1220; border: 1px solid #4c1d3a; border-radius: 10px; overflow: hidden; }
+  .fall-card .fc-header { background: #2d1022; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .fall-card .fc-title  { font-size: 0.85rem; font-weight: 600; color: #f87171; }
+  .fall-card .fc-time   { font-size: 0.75rem; color: #94a3b8; }
+  .fall-card img { width: 100%; display: block; max-height: 180px; object-fit: cover; }
+  .fall-card .fc-body { padding: 10px 14px; font-size: 0.8rem; color: #94a3b8; }
+  .no-falls { text-align: center; padding: 3rem; color: #34d399; font-size: 1.1rem; }
+  .footer { text-align: center; padding: 2rem; color: #334155; font-size: 0.8rem; border-top: 1px solid #1e2433; margin-top: 2rem; }
+  .source-path { font-family: monospace; font-size: 0.8rem; color: #475569; background: #0f1117; padding: 4px 10px; border-radius: 6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>CareBot AI
+    <span class="badge badge-ok">
+      ✓ No Falls Detected
+    </span>
+  </h1>
+  <p>Session Report &nbsp;·&nbsp; 2026-05-05 13:56:04 &nbsp;·&nbsp; <span class="source-path">VID-20260501-WA0081.mp4</span></p>
+</div>
+
+<div class="container">
+
+  <!-- STATS -->
+  <p class="section-title">Session Summary</p>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total Falls</div>
+      <div class="value safe">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Duration</div>
+      <div class="value accent">00:05</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Frames Processed</div>
+      <div class="value">54</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Avg FPS</div>
+      <div class="value">37.7</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Fall Rate</div>
+      <div class="value safe">0.00%</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Session Start</div>
+      <div class="value" style="font-size:1rem">13:55:58</div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <p class="section-title">Fall Timeline</p>
+  <div class="card">
+    <div class="timeline-wrap">
+      <svg viewBox="0 0 1000 60" xmlns="http://www.w3.org/2000/svg"
+               style="width:100%;height:60px;display:block;">
+      <rect x="0" y="52" width="17" height="8" fill="#1e4034"/><rect x="18" y="52" width="17" height="8" fill="#1e4034"/><rect x="36" y="52" width="17" height="8" fill="#1e4034"/><rect x="54" y="52" width="17" height="8" fill="#1e4034"/><rect x="72" y="52" width="17" height="8" fill="#1e4034"/><rect x="90" y="52" width="17" height="8" fill="#1e4034"/><rect x="108" y="52" width="17" height="8" fill="#1e4034"/><rect x="126" y="52" width="17" height="8" fill="#1e4034"/><rect x="144" y="52" width="17" height="8" fill="#1e4034"/><rect x="162" y="52" width="17" height="8" fill="#1e4034"/><rect x="180" y="52" width="17" height="8" fill="#1e4034"/><rect x="198" y="52" width="17" height="8" fill="#1e4034"/><rect x="216" y="52" width="17" height="8" fill="#1e4034"/><rect x="234" y="52" width="17" height="8" fill="#1e4034"/><rect x="252" y="52" width="17" height="8" fill="#1e4034"/><rect x="270" y="52" width="17" height="8" fill="#1e4034"/><rect x="288" y="52" width="17" height="8" fill="#1e4034"/><rect x="306" y="52" width="17" height="8" fill="#1e4034"/><rect x="324" y="52" width="17" height="8" fill="#1e4034"/><rect x="342" y="52" width="17" height="8" fill="#1e4034"/><rect x="360" y="52" width="17" height="8" fill="#1e4034"/><rect x="378" y="52" width="17" height="8" fill="#1e4034"/><rect x="396" y="52" width="17" height="8" fill="#1e4034"/><rect x="414" y="52" width="17" height="8" fill="#1e4034"/><rect x="432" y="52" width="17" height="8" fill="#1e4034"/><rect x="450" y="52" width="17" height="8" fill="#1e4034"/><rect x="468" y="52" width="17" height="8" fill="#1e4034"/><rect x="486" y="52" width="17" height="8" fill="#1e4034"/><rect x="504" y="52" width="17" height="8" fill="#1e4034"/><rect x="522" y="52" width="17" height="8" fill="#1e4034"/><rect x="540" y="52" width="17" height="8" fill="#1e4034"/><rect x="558" y="52" width="17" height="8" fill="#1e4034"/><rect x="576" y="52" width="17" height="8" fill="#1e4034"/><rect x="594" y="52" width="17" height="8" fill="#1e4034"/><rect x="612" y="52" width="17" height="8" fill="#1e4034"/><rect x="630" y="52" width="17" height="8" fill="#1e4034"/><rect x="648" y="52" width="17" height="8" fill="#1e4034"/><rect x="666" y="52" width="17" height="8" fill="#1e4034"/><rect x="684" y="52" width="17" height="8" fill="#1e4034"/><rect x="702" y="52" width="17" height="8" fill="#1e4034"/><rect x="720" y="52" width="17" height="8" fill="#1e4034"/><rect x="738" y="52" width="17" height="8" fill="#1e4034"/><rect x="756" y="52" width="17" height="8" fill="#1e4034"/><rect x="774" y="52" width="17" height="8" fill="#1e4034"/><rect x="792" y="52" width="17" height="8" fill="#1e4034"/><rect x="810" y="52" width="17" height="8" fill="#1e4034"/><rect x="828" y="52" width="17" height="8" fill="#1e4034"/><rect x="846" y="52" width="17" height="8" fill="#1e4034"/><rect x="864" y="52" width="17" height="8" fill="#1e4034"/><rect x="882" y="52" width="17" height="8" fill="#1e4034"/><rect x="900" y="52" width="17" height="8" fill="#1e4034"/><rect x="918" y="52" width="17" height="8" fill="#1e4034"/><rect x="936" y="52" width="17" height="8" fill="#1e4034"/><rect x="954" y="52" width="17" height="8" fill="#1e4034"/>
+    </svg>
+    </div>
+    <p style="font-size:0.75rem; color:#475569; margin-top:10px;">
+      Each bar = 1 frame &nbsp;·&nbsp; 
+      <span style="color:#f87171">■</span> Fall &nbsp; 
+      <span style="color:#1e4034">■</span> Normal
+    </p>
+  </div>
+
+  <!-- FALL EVENTS -->
+  <p class="section-title">Fall Events (0)</p>
+  <div class="card">
+    <div class="no-falls">✓ No falls detected in this session</div>
+  </div>
+
+</div>
+
+<div class="footer">Generated by CareBot AI &nbsp;·&nbsp; 2026-05-05 13:56:04</div>
+</body>
+</html>
